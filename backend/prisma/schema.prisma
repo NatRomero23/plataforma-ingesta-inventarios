@@ -1,0 +1,221 @@
+// Esquema de datos — Plataforma Intermediaria de Ingesta (Red Vidar)
+// Identificadores en inglés (Principio III). Ver specs/001-pharma-inventory-ingest/data-model.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Roles asignables a un User con inicio de sesión. API_INTEGRATOR NO es un UserRole:
+// es un scope de autorización que otorga una ApiKey (no se crea integrador vía /users).
+enum UserRole {
+  ADMIN
+  COORDINATOR
+  PHARMACY_USER
+}
+
+enum LoadOrigin {
+  PORTAL
+  API
+}
+
+enum LoadStatus {
+  RECEIVED
+  VALIDATED
+  QUEUED
+  SENT
+  CONFIRMED
+  CONFIRMED_WITH_ERRORS
+  FAILED
+}
+
+enum LoadRowStatus {
+  VALID
+  REJECTED
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum DispatchJobStatus {
+  QUEUED
+  CLAIMED
+  DONE
+  FAILED
+}
+
+model Chain {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  pharmacies Pharmacy[]
+  users      User[]
+  apiKeys    ApiKey[]
+  loads      Load[]
+}
+
+model Pharmacy {
+  id                   String   @id @default(uuid())
+  chainId              String
+  chain                Chain    @relation(fields: [chainId], references: [id])
+  chainInternalCode    String
+  redVidarPharmacyCode String?
+  name                 String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([chainId, chainInternalCode])
+  @@index([chainId])
+  @@index([redVidarPharmacyCode])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  chainId      String?
+  chain        Chain?   @relation(fields: [chainId], references: [id])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  loads        Load[]
+}
+
+model ApiKey {
+  id        String       @id @default(uuid())
+  chainId   String
+  chain     Chain        @relation(fields: [chainId], references: [id])
+  prefix    String
+  keyHash   String
+  last4     String
+  status    ApiKeyStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  revokedAt DateTime?
+  loads     Load[]
+
+  @@index([chainId, status])
+}
+
+model Load {
+  id                    String            @id @default(uuid())
+  chainId               String
+  chain                 Chain             @relation(fields: [chainId], references: [id])
+  origin                LoadOrigin
+  uploaderUserId        String?
+  uploader              User?             @relation(fields: [uploaderUserId], references: [id])
+  apiKeyId              String?
+  apiKey                ApiKey?           @relation(fields: [apiKeyId], references: [id])
+  sourceLabel           String?
+  status                LoadStatus        @default(RECEIVED)
+  idempotencyKey        String?
+  originalBlob          Bytes
+  originalFilename      String?
+  contentType           String
+  byteSize              Int
+  totalRows             Int               @default(0)
+  validRows             Int               @default(0)
+  rejectedRows          Int               @default(0)
+  unmappedPharmacyCount Int               @default(0)
+  archivedAt            DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  rows                  LoadRow[]
+  attempts              DispatchAttempt[]
+  redVidarResult        RedVidarResult?
+  dispatchJob           DispatchJob?
+
+  @@index([chainId, createdAt])
+  @@index([status])
+}
+
+model LoadRow {
+  id                   String        @id @default(uuid())
+  loadId               String
+  load                 Load          @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  rowNumber            Int
+  chainPharmacyCode    String
+  redVidarPharmacyCode String?
+  ean                  String
+  productName          String
+  stock                Int
+  status               LoadRowStatus
+  rejectionReason      String?
+
+  @@index([loadId])
+}
+
+model DispatchAttempt {
+  id             String    @id @default(uuid())
+  loadId         String
+  load           Load      @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  attemptNumber  Int
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  httpStatus     Int?
+  webhookEventId String?
+  outcome        String
+  retryAfterMs   Int?
+  errorReason    String?
+
+  @@index([loadId])
+}
+
+model RedVidarResult {
+  id                   String   @id @default(uuid())
+  loadId               String   @unique
+  load                 Load     @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  webhookEventId       String
+  processingStatus     String
+  status               String
+  entriesInserted      Int?
+  medicationsInserted  Int?
+  medicationsUpdated   Int?
+  unknownPharmacyCodes String[]
+  rowErrors            Json
+  rawResponse          Json
+  receivedAt           DateTime @default(now())
+}
+
+model DispatchJob {
+  id          String            @id @default(uuid())
+  loadId      String            @unique
+  load        Load              @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  status      DispatchJobStatus @default(QUEUED)
+  attempts    Int               @default(0)
+  availableAt DateTime          @default(now())
+  lockedAt    DateTime?
+  lastError   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status, availableAt])
+}
+
+model RetentionPolicy {
+  id        String   @id @default(uuid())
+  name      String
+  mode      String   @default("INDEFINITE") // INDEFINITE | ARCHIVE_AFTER | PURGE_AFTER
+  afterDays Int?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  detail      Json?
+  createdAt   DateTime @default(now())
+}

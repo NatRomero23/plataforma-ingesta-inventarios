@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Entorno y secretos (NUNCA commitear la credencial rv_pc_live_ ni la contraseña de la BD)
+.env
+.env.*
+!.env.example
+# Explícito para mayor seguridad:
+backend/.env
+frontend/.env
+.env.local
+
+# Prisma
+backend/prisma/*.db
+
+# Cobertura y temporales
+coverage/
+*.tmp
+*.swp
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/router.tsx","./src/i18n/es-mx.ts","./src/pages/admin.tsx","./src/pages/loaddetail.tsx","./src/pages/login.tsx","./src/pages/mailbox.tsx","./src/pages/myloads.tsx","./src/pages/pharmacyactivity.tsx","./src/pages/portalupload.tsx","./src/services/apiclient.ts"],"version":"5.9.3"}

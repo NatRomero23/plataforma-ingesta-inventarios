@@ -1,0 +1,363 @@
+openapi: 3.0.3
+info:
+  title: API de la Plataforma Intermediaria de Ingesta (Red Vidar)
+  version: 1.0.0
+  description: >
+    Contrato de la API que expone la plataforma para el portal (usuarios autenticados con JWT) y para
+    integradores (autenticados con clave de API propia de la plataforma). Los mensajes visibles y de error se
+    devuelven en es-MX. La credencial de Red Vidar (rv_pc_live_) NUNCA aparece en este contrato ni en respuestas.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Admin
+  - name: Portal
+  - name: Integración
+  - name: Buzón
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión (portal)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  role: { $ref: '#/components/schemas/UserRole' }
+                  chainId: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---------- Gestión (ADMIN) — US5 ----------
+  /chains:
+    get:
+      tags: [Admin]
+      summary: Listar cadenas
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Admin]
+      summary: Crear cadena
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ChainInput' } } }
+      responses: { '201': { description: Creada }, '409': { $ref: '#/components/responses/Conflict' } }
+  /chains/{chainId}/pharmacies:
+    post:
+      tags: [Admin]
+      summary: Alta de farmacia (con tabla de equivalencias)
+      parameters: [{ $ref: '#/components/parameters/ChainId' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PharmacyInput' } } }
+      responses:
+        '201': { description: Creada }
+        '409':
+          description: Código interno duplicado en la cadena o código Red Vidar duplicado
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /users:
+    post:
+      tags: [Admin]
+      summary: Crear persona usuaria con rol y cadena
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UserInput' } } }
+      responses: { '201': { description: Creada } }
+  /chains/{chainId}/api-keys:
+    post:
+      tags: [Admin]
+      summary: Generar clave de API para la cadena (se muestra una sola vez)
+      description: >
+        Genera una nueva clave de API para la cadena. Si la cadena ya tiene una clave ACTIVE, esta se revoca
+        automáticamente en la misma transacción (invariante: a lo sumo una ACTIVE por cadena); la generación y la
+        revocación automática se registran en AuditLog (FR-028).
+      parameters: [{ $ref: '#/components/parameters/ChainId' }]
+      responses:
+        '201':
+          description: Clave generada (secreto visible solo aquí; revoca la ACTIVE previa si existía)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey: { type: string, example: emp_live_XXXXXXXXXXXXXXXX, description: Prefijo propio de la plataforma; NUNCA rv_pc_live_ }
+                  last4: { type: string }
+                  chainId: { type: string }
+  /api-keys/{apiKeyId}/revoke:
+    post:
+      tags: [Admin]
+      summary: Revocar clave de API (efecto inmediato)
+      parameters: [{ name: apiKeyId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: Revocada } }
+
+  # ---------- Portal (PHARMACY_USER) — US1 ----------
+  /inventory/template:
+    get:
+      tags: [Portal]
+      summary: Descargar plantilla de Excel fija
+      responses:
+        '200':
+          description: Archivo de plantilla
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+  /inventory/portal-uploads:
+    post:
+      tags: [Portal]
+      summary: Subir archivo de inventario (parseo + validación local; NO envía aún)
+      description: >
+        Parsea el Excel, traduce códigos de farmacia y valida cada renglón. Devuelve el resumen de validación
+        y crea una carga en estado VALIDATED. No se envía nada a Red Vidar hasta la confirmación (FR-006).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Resumen de validación
+          content: { application/json: { schema: { $ref: '#/components/schemas/ValidationSummary' } } }
+        '400':
+          description: Archivo inválido (faltan columnas) o excede el límite de tamaño (~10 MB)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '413': { description: Archivo demasiado grande, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /loads/{loadId}/confirm:
+    post:
+      tags: [Portal]
+      summary: Confirmar el envío de los renglones válidos (encola la carga)
+      description: Transiciona VALIDATED→QUEUED. Rechaza si no hay renglones válidos (FR-007).
+      parameters: [{ $ref: '#/components/parameters/LoadId' }]
+      responses:
+        '202': { description: Encolada para despacho }
+        '409':
+          description: La carga no tiene renglones válidos o no está en estado VALIDATED
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  # ---------- Integración (API_INTEGRATOR) — US4 ----------
+  /integration/inventory:
+    post:
+      tags: [Integración]
+      summary: Ingesta por API (contrato espejo de Red Vidar); auto-encola renglones válidos
+      security: [{ apiKeyAuth: [] }]
+      description: >
+        Autenticado con clave de API de la plataforma. Aplica la misma validación/traducción que el portal y
+        AUTO-ENCOLA los renglones válidos en una sola llamada (FR-010a). Respuesta síncrona con el resumen y el
+        identificador de la carga.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InventorySubmission' }
+      responses:
+        '200':
+          description: Resumen de validación + id de carga (válidos ya encolados)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ValidationSummary' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: Payload demasiado grande }
+
+  /loads/{loadId}:
+    get:
+      tags: [Buzón, Integración]
+      summary: Estado y detalle de una carga por identificador
+      description: >
+        Accesible por integrador (solo sus cargas, vía clave de API), usuario-farmacia (solo su cadena),
+        coordinación y admin (todas). Devuelve el detalle completo (FR-011/FR-024).
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters: [{ $ref: '#/components/parameters/LoadId' }]
+      responses:
+        '200':
+          description: Detalle de carga
+          content: { application/json: { schema: { $ref: '#/components/schemas/LoadDetail' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: No encontrada }
+  /loads/{loadId}/original:
+    get:
+      tags: [Buzón]
+      summary: Descargar el archivo/payload original de la carga (FR-024)
+      parameters: [{ $ref: '#/components/parameters/LoadId' }]
+      responses:
+        '200': { description: Archivo original }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ---------- Buzón / Monitor (COORDINATOR, ADMIN) — US3, US6 ----------
+  /loads:
+    get:
+      tags: [Buzón]
+      summary: Bandeja de cargas con filtros (FR-023)
+      parameters:
+        - { name: chainId, in: query, schema: { type: string } }
+        - { name: pharmacyCode, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/LoadStatus' } }
+        - { name: dateFrom, in: query, schema: { type: string, format: date } }
+        - { name: dateTo, in: query, schema: { type: string, format: date } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        '200':
+          description: Página de cargas
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/LoadSummary' } } } }
+  /pharmacies/activity:
+    get:
+      tags: [Buzón]
+      summary: Vista por farmacia con la fecha de su última carga exitosa (FR-025)
+      parameters: [{ name: chainId, in: query, schema: { type: string } }]
+      responses:
+        '200':
+          description: Actividad por farmacia
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pharmacyId: { type: string }
+                    name: { type: string }
+                    lastSuccessfulLoadAt: { type: string, format: date-time, nullable: true }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    apiKeyAuth: { type: apiKey, in: header, name: X-API-Key }
+  parameters:
+    ChainId: { name: chainId, in: path, required: true, schema: { type: string } }
+    LoadId: { name: loadId, in: path, required: true, schema: { type: string } }
+  responses:
+    Unauthorized:
+      description: No autenticado / credencial inválida o revocada
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Sin permiso para el recurso (fuera del alcance del rol/cadena)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Conflicto de unicidad
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    # Roles asignables a un User con inicio de sesión. API_INTEGRATOR NO es un rol de User:
+    # es un scope de autorización que otorga la ApiKey (no se crea integrador vía /users).
+    UserRole: { type: string, enum: [ADMIN, COORDINATOR, PHARMACY_USER] }
+    LoadStatus: { type: string, enum: [RECEIVED, VALIDATED, QUEUED, SENT, CONFIRMED, CONFIRMED_WITH_ERRORS, FAILED] }
+    Error:
+      type: object
+      properties:
+        code: { type: string, description: código estable de error }
+        message: { type: string, description: mensaje legible en es-MX }
+      required: [code, message]
+    ChainInput:
+      type: object
+      required: [name]
+      properties: { name: { type: string } }
+    PharmacyInput:
+      type: object
+      required: [chainInternalCode, name]
+      properties:
+        chainInternalCode: { type: string, description: como la cadena la llama }
+        redVidarPharmacyCode: { type: string, nullable: true, description: pharmacyCode del contrato Red Vidar }
+        name: { type: string }
+    UserInput:
+      type: object
+      required: [email, password, role]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        role: { $ref: '#/components/schemas/UserRole' }
+        chainId: { type: string, nullable: true }
+    InventorySubmission:
+      type: object
+      required: [sourceLabel, items]
+      description: Contrato espejo del de Red Vidar; pharmacyCode aquí es el CÓDIGO DE LA CADENA (se traduce)
+      properties:
+        sourceLabel: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [pharmacyCode, ean, productName, stock]
+            properties:
+              pharmacyCode: { type: string, description: código de farmacia de la cadena (no el de Red Vidar) }
+              ean: { type: string, maxLength: 20 }
+              productName: { type: string, minLength: 1 }
+              stock: { type: integer, minimum: 0 }
+    ValidationSummary:
+      type: object
+      properties:
+        loadId: { type: string }
+        status: { $ref: '#/components/schemas/LoadStatus' }
+        totalRows: { type: integer }
+        validRows: { type: integer }
+        rejectedRows: { type: integer }
+        rowErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              rowNumber: { type: integer }
+              reason: { type: string, description: en es-MX }
+        unmappedPharmacies:
+          type: array
+          items:
+            type: object
+            properties:
+              chainPharmacyCode: { type: string }
+              rowCount: { type: integer }
+    LoadSummary:
+      type: object
+      properties:
+        loadId: { type: string }
+        chainId: { type: string }
+        origin: { type: string, enum: [PORTAL, API] }
+        status: { $ref: '#/components/schemas/LoadStatus' }
+        totalRows: { type: integer }
+        validRows: { type: integer }
+        rejectedRows: { type: integer }
+        createdAt: { type: string, format: date-time }
+    LoadDetail:
+      allOf:
+        - $ref: '#/components/schemas/LoadSummary'
+        - type: object
+          properties:
+            uploadedBy: { type: string, nullable: true }
+            sourceLabel: { type: string, nullable: true }
+            redVidarResult:
+              type: object
+              nullable: true
+              properties:
+                webhookEventId: { type: string }
+                entriesInserted: { type: integer, nullable: true }
+                medicationsInserted: { type: integer, nullable: true }
+                medicationsUpdated: { type: integer, nullable: true }
+                unknownPharmacyCodes: { type: array, items: { type: string } }
+                rowErrors: { type: array, items: { type: object } }
+            attempts:
+              type: array
+              items:
+                type: object
+                properties:
+                  attemptNumber: { type: integer }
+                  startedAt: { type: string, format: date-time }
+                  finishedAt: { type: string, format: date-time, nullable: true }
+                  httpStatus: { type: integer, nullable: true }
+                  webhookEventId: { type: string, nullable: true }
+                  errorReason: { type: string, nullable: true }
