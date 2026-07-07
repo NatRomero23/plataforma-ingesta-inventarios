@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import './styles/theme.css';
 import { PortalLayout } from './router';
 import { Login } from './pages/Login';
 import { PortalUpload } from './pages/PortalUpload';

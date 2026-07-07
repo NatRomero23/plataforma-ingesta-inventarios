@@ -1,8 +1,22 @@
 // Textos de la interfaz en español de México (Principio III). Fuente única de cadenas de UI.
 export const t = {
   appName: 'Plataforma de Ingesta de Inventarios',
+  appShort: 'Ingesta de Inventarios',
+  brandSub: 'Red Vidar',
+  common: {
+    loading: 'Cargando…',
+    copy: 'Copiar',
+    copied: '¡Copiado!',
+    menu: 'Menú',
+  },
+  roles: {
+    ADMIN: 'Administrador',
+    COORDINATOR: 'Coordinador',
+    PHARMACY_USER: 'Usuario de farmacia',
+  } as Record<string, string>,
   login: {
     title: 'Iniciar sesión',
+    subtitle: 'Accede al portal para subir y dar seguimiento a tus inventarios.',
     email: 'Correo electrónico',
     password: 'Contraseña',
     submit: 'Entrar',
@@ -93,8 +107,17 @@ export const t = {
   },
   upload: {
     title: 'Subir inventario',
+    intro: 'Sube tu archivo de inventario en Excel para validarlo antes de enviarlo a Red Vidar.',
     downloadTemplate: 'Descargar plantilla de Excel',
     chooseFile: 'Selecciona tu archivo de inventario',
+    dropHint: 'Arrastra tu archivo .xlsx aquí',
+    dropOr: 'o haz clic para seleccionarlo',
+    fileReady: 'Archivo listo para validar',
+    changeFile: 'Cambiar archivo',
+    validRowsCard: 'Renglones válidos',
+    unmappedCard: 'Farmacias no mapeadas',
+    unmappedHelp:
+      'Estas farmacias no tienen equivalencia con Red Vidar todavía. Sus renglones no se enviarán hasta que se mapeen en Administración.',
     validate: 'Validar archivo',
     validating: 'Validando…',
     summaryTitle: 'Resultado de validación',

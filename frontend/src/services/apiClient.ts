@@ -3,6 +3,7 @@
 
 const TOKEN_KEY = 'auth_token';
 const ROLE_KEY = 'auth_role';
+const EMAIL_KEY = 'auth_email';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -10,17 +11,22 @@ export function getToken(): string | null {
 export function getRole(): string | null {
   return localStorage.getItem(ROLE_KEY);
 }
+export function getUserEmail(): string | null {
+  return localStorage.getItem(EMAIL_KEY);
+}
 export function isPrivileged(): boolean {
   const role = getRole();
   return role === 'ADMIN' || role === 'COORDINATOR';
 }
-export function setSession(token: string, role: string): void {
+export function setSession(token: string, role: string, email?: string): void {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(ROLE_KEY, role);
+  if (email) localStorage.setItem(EMAIL_KEY, email);
 }
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem(EMAIL_KEY);
 }
 
 function authHeaders(): Record<string, string> {

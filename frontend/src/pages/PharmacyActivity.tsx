@@ -1,6 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { listPharmacyActivity, type PharmacyActivity as Activity } from '../services/apiClient';
 import { t } from '../i18n/es-MX';
+import { Table } from '../components/Table';
 
 export function PharmacyActivity() {
   const [rows, setRows] = useState<Activity[] | null>(null);
@@ -11,42 +12,46 @@ export function PharmacyActivity() {
       .catch(() => setRows([]));
   }, []);
 
-  if (rows === null) return <p>Cargando…</p>;
+  if (rows === null) return <p className="muted">{t.common.loading}</p>;
 
   return (
-    <section>
+    <section className="stack" style={{ gap: '1rem' }}>
       <h2>{t.activity.title}</h2>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <Table>
         <thead>
           <tr>
-            <th style={cell}>{t.activity.pharmacy}</th>
-            <th style={cell}>{t.activity.internalCode}</th>
-            <th style={cell}>{t.activity.redVidarCode}</th>
-            <th style={cell}>{t.activity.lastSuccess}</th>
+            <th>{t.activity.pharmacy}</th>
+            <th>{t.activity.internalCode}</th>
+            <th>{t.activity.redVidarCode}</th>
+            <th>{t.activity.lastSuccess}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
             const stale = !r.lastSuccessfulLoadAt;
             return (
-              <tr key={r.pharmacyId} style={stale ? { background: '#fff4f4' } : undefined}>
-                <td style={cell}>{r.name}</td>
-                <td style={cell}>{r.chainInternalCode}</td>
-                <td style={cell}>{r.redVidarPharmacyCode ?? t.activity.unmapped}</td>
-                <td style={cell}>
+              <tr key={r.pharmacyId} className={stale ? 'row-alert' : undefined}>
+                <td>{r.name}</td>
+                <td className="mono">{r.chainInternalCode}</td>
+                <td>
+                  {r.redVidarPharmacyCode ? (
+                    <span className="mono">{r.redVidarPharmacyCode}</span>
+                  ) : (
+                    <span className="badge badge-warn">{t.activity.unmapped}</span>
+                  )}
+                </td>
+                <td>
                   {r.lastSuccessfulLoadAt ? (
                     new Date(r.lastSuccessfulLoadAt).toLocaleString('es-MX')
                   ) : (
-                    <span style={{ color: 'crimson' }}>{t.activity.never}</span>
+                    <span className="badge badge-danger">{t.activity.never}</span>
                   )}
                 </td>
               </tr>
             );
           })}
         </tbody>
-      </table>
+      </Table>
     </section>
   );
 }
-
-const cell: CSSProperties = { border: '1px solid #ddd', padding: '0.4rem', textAlign: 'left' };

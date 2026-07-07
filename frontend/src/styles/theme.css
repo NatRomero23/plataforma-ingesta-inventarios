@@ -1,0 +1,727 @@
+/* =========================================================================
+   Sistema de diseño EMA Salud — tokens y estilos base.
+   Fuente única de estilos de la plataforma. No cambia lógica ni textos.
+   ========================================================================= */
+
+:root {
+  /* --- Tipografía --- */
+  --ema-font: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ema-fs-lg: 1.1rem;   /* destacados / subtítulos */
+  --ema-fs-base: 0.9rem; /* texto por defecto (~14px) */
+  --ema-fs-sm: 0.8rem;   /* etiquetas, ayudas, tablas */
+  --ema-fs-mini: 0.7rem; /* metadatos, captions */
+  --ema-fw-light: 300;   /* headings */
+  --ema-fw-normal: 400;
+  --ema-fw-semibold: 600; /* énfasis / etiquetas activas */
+  --ema-fw-bold: 700;
+
+  /* --- Color primario / acción --- */
+  --ema-primary: #4a90e2;
+  --ema-primary-hover: #3672b8;
+  --ema-primary-active: #1e4670;
+
+  /* --- Marca --- */
+  --ema-brand-01: #003966;
+  --ema-brand-02: #0069a6;
+  --ema-brand-03: #abc27e;
+  --ema-brand-04: #6cc049;
+
+  /* --- Semánticos --- */
+  --ema-link: #218bc3;
+  --ema-ok: #02bd8b;
+  --ema-warn-bg: #f8e7cf;
+  --ema-warn-text: #7a4b12;
+  --ema-danger: #d64545;
+  --ema-danger-bg: #fbe3e3;
+  --ema-selected: #7bccfd;
+  --ema-page-bg: #dfe4ea;
+  --ema-text: #495057;
+  --ema-muted: #6c757d;
+  --ema-surface: #ffffff;
+  --ema-border: #d7dbe0;
+
+  /* --- Sidebar / navegación --- */
+  --ema-nav-bg: #21436a;
+  --ema-nav-hover: #192f4f;
+  --ema-nav-active: #2e67a8;
+  --ema-nav-text: #ffffff;
+  --ema-nav-text-secondary: rgba(255, 255, 255, 0.47);
+
+  /* --- Tablas --- */
+  --ema-thead-bg: #919191;
+  --ema-thead-text: #ffffff;
+  --ema-row-even: #eaeaea;
+  --ema-row-odd: #ffffff;
+
+  /* --- Layout --- */
+  --ema-sidebar-w: 240px;
+  --ema-navbar-h: 60px;
+  --ema-content-pad: 20px;
+  --ema-gutter: 10px;
+  --ema-radius: 0.3rem;
+  --ema-radius-sm: 0.25rem;
+  --ema-radius-lg: 0.35rem;
+  --ema-disabled-opacity: 0.65;
+  --ema-shadow-sm: 0 1px 3px rgba(0, 57, 102, 0.08), 0 1px 2px rgba(0, 57, 102, 0.06);
+  --ema-shadow-md: 0 4px 16px rgba(0, 57, 102, 0.12);
+}
+
+/* --- Reset ligero --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--ema-font);
+  font-size: var(--ema-fs-base);
+  font-weight: var(--ema-fw-normal);
+  color: var(--ema-text);
+  background: var(--ema-page-bg);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: var(--ema-fw-light);
+  color: var(--ema-brand-01);
+  line-height: 1.25;
+  margin: 0 0 0.6rem;
+}
+
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: var(--ema-fs-base); font-weight: var(--ema-fw-semibold); color: var(--ema-text); }
+
+a {
+  color: var(--ema-link);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* --- Foco visible (accesibilidad) --- */
+:focus-visible {
+  outline: 2px solid var(--ema-primary);
+  outline-offset: 2px;
+  border-radius: var(--ema-radius-sm);
+}
+
+/* =========================================================================
+   Botones
+   ========================================================================= */
+button,
+.btn {
+  font-family: inherit;
+  font-size: var(--ema-fs-base);
+  font-weight: var(--ema-fw-semibold);
+  color: #fff;
+  background: var(--ema-primary);
+  border: 1px solid var(--ema-primary);
+  border-radius: var(--ema-radius);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  line-height: 1.2;
+}
+button:hover,
+.btn:hover {
+  background: var(--ema-primary-hover);
+  border-color: var(--ema-primary-hover);
+}
+button:active,
+.btn:active {
+  background: var(--ema-primary-active);
+  border-color: var(--ema-primary-active);
+}
+button:disabled,
+.btn:disabled {
+  opacity: var(--ema-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* Botón secundario (acciones menos prominentes) */
+.btn-secondary {
+  color: var(--ema-primary);
+  background: #fff;
+  border-color: var(--ema-primary);
+}
+.btn-secondary:hover {
+  background: #f0f6fd;
+  border-color: var(--ema-primary-hover);
+  color: var(--ema-primary-hover);
+}
+.btn-secondary:active {
+  background: #e3eefb;
+}
+
+/* Botón fantasma / peligro suave */
+.btn-danger {
+  color: var(--ema-danger);
+  background: #fff;
+  border-color: var(--ema-danger);
+}
+.btn-danger:hover {
+  background: var(--ema-danger-bg);
+  color: var(--ema-danger);
+  border-color: var(--ema-danger);
+}
+
+/* Acción tipo enlace (p.ej. "Ver detalle") */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--ema-link);
+  font-weight: var(--ema-fw-semibold);
+  padding: 0;
+  cursor: pointer;
+}
+.btn-link:hover {
+  background: none;
+  color: var(--ema-link);
+  text-decoration: underline;
+}
+
+.btn-sm {
+  font-size: var(--ema-fs-sm);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--ema-radius-sm);
+}
+.btn-lg {
+  font-size: var(--ema-fs-lg);
+  padding: 0.65rem 1.4rem;
+}
+
+/* =========================================================================
+   Formularios
+   ========================================================================= */
+label {
+  font-size: var(--ema-fs-sm);
+  color: var(--ema-text);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: var(--ema-fs-base);
+  color: var(--ema-text);
+  background: #fff;
+  border: 1px solid var(--ema-border);
+  border-radius: var(--ema-radius);
+  padding: 0.45rem 0.6rem;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ema-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.18);
+}
+input:disabled,
+select:disabled {
+  opacity: var(--ema-disabled-opacity);
+}
+
+/* Campo con etiqueta apilada */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.field > span,
+.field > label {
+  font-size: var(--ema-fs-sm);
+  font-weight: var(--ema-fw-semibold);
+  color: var(--ema-text);
+}
+
+/* =========================================================================
+   Tarjetas (Card)
+   ========================================================================= */
+.card {
+  background: var(--ema-surface);
+  border: 1px solid var(--ema-border);
+  border-radius: var(--ema-radius-lg);
+  box-shadow: var(--ema-shadow-sm);
+}
+.card-header {
+  padding: 0.9rem var(--ema-content-pad);
+  border-bottom: 1px solid var(--ema-border);
+}
+.card-header h3,
+.card-header h2 {
+  margin: 0;
+}
+.card-body {
+  padding: var(--ema-content-pad);
+}
+
+/* =========================================================================
+   Tablas EMA
+   ========================================================================= */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--ema-radius);
+  border: 1px solid var(--ema-border);
+  background: #fff;
+}
+.ema-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--ema-fs-sm);
+}
+.ema-table thead th {
+  background: var(--ema-thead-bg);
+  color: var(--ema-thead-text);
+  font-weight: var(--ema-fw-semibold);
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  white-space: nowrap;
+}
+.ema-table tbody td {
+  padding: 0.5rem 0.7rem;
+  border-top: 1px solid #e4e4e4;
+  vertical-align: middle;
+}
+.ema-table tbody tr:nth-child(odd) { background: var(--ema-row-odd); }
+.ema-table tbody tr:nth-child(even) { background: var(--ema-row-even); }
+.ema-table tbody tr:hover { background: #dbeafe; }
+.ema-table tbody tr.row-alert,
+.ema-table tbody tr.row-alert:nth-child(even) { background: var(--ema-danger-bg); }
+
+/* =========================================================================
+   Badges de estado
+   ========================================================================= */
+.badge {
+  display: inline-block;
+  font-size: var(--ema-fs-sm);
+  font-weight: var(--ema-fw-semibold);
+  line-height: 1.4;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge-ok { background: var(--ema-ok); color: #fff; }
+.badge-warn { background: var(--ema-warn-bg); color: var(--ema-warn-text); }
+.badge-danger { background: var(--ema-danger); color: #fff; }
+.badge-info { background: var(--ema-primary); color: #fff; }
+.badge-neutral { background: #e2e6ea; color: var(--ema-text); }
+
+/* =========================================================================
+   Mensajes de estado (alertas)
+   ========================================================================= */
+.alert {
+  border-radius: var(--ema-radius);
+  padding: 0.6rem 0.9rem;
+  font-size: var(--ema-fs-sm);
+  margin: 0.75rem 0;
+}
+.alert-error { background: var(--ema-danger-bg); color: #8a2020; border: 1px solid #f0b8b8; }
+.alert-success { background: #d9f7ee; color: #05664c; border: 1px solid #a6e6d3; }
+.alert-info { background: #e6f2fb; color: #0c5a86; border: 1px solid #b8dcf2; }
+
+/* =========================================================================
+   Login
+   ========================================================================= */
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--ema-content-pad);
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgba(0, 105, 166, 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(108, 192, 73, 0.10), transparent 60%),
+    var(--ema-page-bg);
+}
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  box-shadow: var(--ema-shadow-md);
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.login-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ema-radius-lg);
+  background: linear-gradient(135deg, var(--ema-brand-02), var(--ema-brand-04));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: var(--ema-fw-bold);
+  font-size: 1rem;
+  flex: 0 0 auto;
+}
+.login-app-name {
+  font-size: 1.05rem;
+  margin: 0;
+  line-height: 1.2;
+}
+.login-brand-sub {
+  margin: 0;
+  font-size: var(--ema-fs-sm);
+  color: var(--ema-brand-02);
+  font-weight: var(--ema-fw-semibold);
+}
+.login-title { margin-bottom: 0.15rem; }
+.login-subtitle { margin: 0; font-size: var(--ema-fs-sm); }
+
+/* =========================================================================
+   App shell (sidebar + contenido)
+   ========================================================================= */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--ema-sidebar-w);
+  flex: 0 0 var(--ema-sidebar-w);
+  background: var(--ema-nav-bg);
+  color: var(--ema-nav-text);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: var(--ema-navbar-h);
+  padding: 0 var(--ema-content-pad);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 0 0 auto;
+}
+.sidebar-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--ema-radius);
+  background: linear-gradient(135deg, var(--ema-brand-02), var(--ema-brand-04));
+  color: #fff;
+  font-weight: var(--ema-fw-bold);
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  flex: 0 0 auto;
+}
+.sidebar-brand-name {
+  font-size: var(--ema-fs-sm);
+  font-weight: var(--ema-fw-semibold);
+  line-height: 1.2;
+  color: #fff;
+}
+.sidebar-brand-sub {
+  display: block;
+  font-size: var(--ema-fs-mini);
+  font-weight: var(--ema-fw-normal);
+  color: var(--ema-nav-text-secondary);
+}
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem var(--ema-content-pad);
+  color: var(--ema-nav-text-secondary);
+  font-size: var(--ema-fs-sm);
+  font-weight: var(--ema-fw-normal);
+  border-left: 3px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sidebar-link:hover {
+  background: var(--ema-nav-hover);
+  color: #fff;
+  text-decoration: none;
+}
+.sidebar-link.active {
+  background: var(--ema-nav-active);
+  color: #fff;
+  font-weight: var(--ema-fw-semibold);
+  border-left-color: var(--ema-brand-04);
+}
+.sidebar-link .nav-icon {
+  width: 18px;
+  text-align: center;
+  flex: 0 0 auto;
+  opacity: 0.9;
+}
+
+.sidebar-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.85rem var(--ema-content-pad);
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ema-brand-02);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: var(--ema-fw-semibold);
+  font-size: var(--ema-fs-sm);
+  flex: 0 0 auto;
+  text-transform: uppercase;
+}
+.sidebar-user-meta {
+  min-width: 0;
+  line-height: 1.25;
+}
+.sidebar-user-name {
+  font-size: var(--ema-fs-sm);
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-user-role {
+  font-size: var(--ema-fs-mini);
+  color: var(--ema-nav-text-secondary);
+}
+.sidebar-logout {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: var(--ema-fs-sm);
+  padding: 0.4rem 0.6rem;
+}
+.sidebar-logout:hover {
+  background: var(--ema-nav-hover);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* --- Área de contenido --- */
+.content-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.navbar {
+  height: var(--ema-navbar-h);
+  background: #fff;
+  border-bottom: 1px solid var(--ema-border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 var(--ema-content-pad);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.navbar-title {
+  font-size: var(--ema-fs-lg);
+  font-weight: var(--ema-fw-light);
+  color: var(--ema-brand-01);
+}
+.content-main {
+  padding: var(--ema-content-pad);
+  flex: 1 1 auto;
+}
+.page-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* --- Botón hamburguesa (solo móvil) --- */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--ema-border);
+  color: var(--ema-text);
+  border-radius: var(--ema-radius);
+  padding: 0.35rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.sidebar-backdrop {
+  display: none;
+}
+
+/* =========================================================================
+   Utilidades
+   ========================================================================= */
+.stack { display: flex; flex-direction: column; gap: var(--ema-gutter); }
+.row { display: flex; gap: var(--ema-gutter); flex-wrap: wrap; align-items: center; }
+.row-end { align-items: flex-end; }
+.spacer { flex: 1 1 auto; }
+.muted { color: var(--ema-muted); }
+.text-sm { font-size: var(--ema-fs-sm); }
+.text-mini { font-size: var(--ema-fs-mini); }
+.mono { font-family: 'Roboto Mono', ui-monospace, 'Cascadia Code', monospace; }
+
+/* Tarjetas de conteo numérico */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ema-gutter);
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--ema-border);
+  border-radius: var(--ema-radius-lg);
+  padding: 0.9rem 1rem;
+  box-shadow: var(--ema-shadow-sm);
+}
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: var(--ema-fw-light);
+  color: var(--ema-brand-01);
+  line-height: 1.1;
+}
+.stat-value.ok { color: var(--ema-ok); }
+.stat-value.warn { color: var(--ema-warn-text); }
+.stat-value.danger { color: var(--ema-danger); }
+.stat-label {
+  font-size: var(--ema-fs-sm);
+  color: var(--ema-muted);
+  margin-top: 0.15rem;
+}
+
+/* Lista de descripción del detalle */
+.detail-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  gap: 0.4rem 1.25rem;
+  margin: 0;
+}
+.detail-dl dt {
+  font-size: var(--ema-fs-sm);
+  font-weight: var(--ema-fw-semibold);
+  color: var(--ema-muted);
+}
+.detail-dl dd { margin: 0; word-break: break-word; }
+
+/* Zona de subida (drag & drop) */
+.dropzone {
+  border: 2px dashed var(--ema-border);
+  border-radius: var(--ema-radius-lg);
+  background: #f7f9fb;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone:hover { border-color: var(--ema-primary); background: #f0f6fd; }
+.dropzone.dragging { border-color: var(--ema-primary); background: #e3eefb; }
+.dropzone-icon {
+  font-size: 2rem;
+  color: var(--ema-primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.dropzone-title { font-weight: var(--ema-fw-semibold); margin: 0 0 0.15rem; color: var(--ema-text); }
+.dropzone-file { font-weight: var(--ema-fw-semibold); color: var(--ema-ok); margin: 0 0 0.15rem; }
+
+.ok-text { color: var(--ema-ok); }
+
+/* Barra de confirmación destacada del flujo de carga */
+.confirm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ema-gutter);
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--ema-border);
+  border-left: 4px solid var(--ema-ok);
+  border-radius: var(--ema-radius-lg);
+  padding: 0.9rem var(--ema-content-pad);
+  box-shadow: var(--ema-shadow-sm);
+}
+
+/* Barra de filtros compacta (buzón) */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ema-gutter);
+  align-items: flex-end;
+}
+.filter-bar .field { min-width: 140px; }
+.filter-bar input,
+.filter-bar select { padding: 0.35rem 0.5rem; }
+.filter-actions {
+  display: flex;
+  gap: var(--ema-gutter);
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+/* Copia al portapapeles */
+.copy-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f4f6f8;
+  border: 1px solid var(--ema-border);
+  border-radius: var(--ema-radius);
+  padding: 0.2rem 0.2rem 0.2rem 0.55rem;
+  font-size: var(--ema-fs-sm);
+  max-width: 100%;
+}
+.copy-field code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================================
+   Responsive — sidebar colapsable (< md 768px)
+   ========================================================================= */
+@media (max-width: 767.98px) {
+  .nav-toggle { display: inline-flex; }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--ema-shadow-md);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop.show {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 20, 40, 0.45);
+    z-index: 30;
+  }
+  .page-container { max-width: 100%; }
+}

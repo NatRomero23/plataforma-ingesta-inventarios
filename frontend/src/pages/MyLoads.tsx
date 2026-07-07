@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { listMyLoads, type LoadSummary } from '../services/apiClient';
 import { t } from '../i18n/es-MX';
+import { Table } from '../components/Table';
+import { StatusBadge } from '../components/StatusBadge';
 
 export function MyLoads() {
   const [loads, setLoads] = useState<LoadSummary[] | null>(null);
@@ -9,38 +11,39 @@ export function MyLoads() {
     void listMyLoads().then(setLoads).catch(() => setLoads([]));
   }, []);
 
-  if (loads === null) return <p>Cargando…</p>;
-  if (loads.length === 0) return <p>{t.loads.empty}</p>;
+  if (loads === null) return <p className="muted">{t.common.loading}</p>;
 
   return (
-    <section>
+    <section className="stack" style={{ gap: '1rem' }}>
       <h2>{t.loads.title}</h2>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <thead>
-          <tr>
-            <th style={cell}>{t.loads.id}</th>
-            <th style={cell}>{t.loads.status}</th>
-            <th style={cell}>{t.loads.total}</th>
-            <th style={cell}>{t.loads.valid}</th>
-            <th style={cell}>{t.loads.rejected}</th>
-            <th style={cell}>{t.loads.date}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loads.map((l) => (
-            <tr key={l.loadId}>
-              <td style={cell}>{l.loadId.slice(0, 8)}</td>
-              <td style={cell}>{t.status[l.status] ?? l.status}</td>
-              <td style={cell}>{l.totalRows}</td>
-              <td style={cell}>{l.validRows}</td>
-              <td style={cell}>{l.rejectedRows}</td>
-              <td style={cell}>{new Date(l.createdAt).toLocaleString('es-MX')}</td>
+      {loads.length === 0 ? (
+        <div className="card"><div className="card-body muted">{t.loads.empty}</div></div>
+      ) : (
+        <Table>
+          <thead>
+            <tr>
+              <th>{t.loads.id}</th>
+              <th>{t.loads.status}</th>
+              <th>{t.loads.total}</th>
+              <th>{t.loads.valid}</th>
+              <th>{t.loads.rejected}</th>
+              <th>{t.loads.date}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {loads.map((l) => (
+              <tr key={l.loadId}>
+                <td className="mono">{l.loadId.slice(0, 8)}</td>
+                <td><StatusBadge status={l.status} /></td>
+                <td>{l.totalRows}</td>
+                <td>{l.validRows}</td>
+                <td>{l.rejectedRows}</td>
+                <td>{new Date(l.createdAt).toLocaleString('es-MX')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
     </section>
   );
 }
-
-const cell: React.CSSProperties = { border: '1px solid #ddd', padding: '0.4rem', textAlign: 'left' };

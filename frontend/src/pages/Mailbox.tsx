@@ -1,7 +1,9 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listLoads, type LoadFilters, type LoadSummary } from '../services/apiClient';
 import { t } from '../i18n/es-MX';
+import { Table } from '../components/Table';
+import { StatusBadge } from '../components/StatusBadge';
 
 const STATUSES = [
   'RECEIVED',
@@ -35,89 +37,91 @@ export function Mailbox() {
   }
 
   return (
-    <section>
+    <section className="stack" style={{ gap: '1rem' }}>
       <h2>{t.mailbox.title}</h2>
 
-      <fieldset style={{ marginBottom: '1rem' }}>
-        <legend>{t.mailbox.filters}</legend>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label>
-            {t.mailbox.chain}
-            <input value={filters.chainId ?? ''} onChange={(e) => set('chainId', e.target.value)} />
-          </label>
-          <label>
-            {t.mailbox.pharmacy}
-            <input value={filters.pharmacyCode ?? ''} onChange={(e) => set('pharmacyCode', e.target.value)} />
-          </label>
-          <label>
-            {t.mailbox.status}
-            <select value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
-              <option value="">{t.mailbox.all}</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {t.status[s] ?? s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t.mailbox.dateFrom}
-            <input type="date" value={filters.dateFrom ?? ''} onChange={(e) => set('dateFrom', e.target.value)} />
-          </label>
-          <label>
-            {t.mailbox.dateTo}
-            <input type="date" value={filters.dateTo ?? ''} onChange={(e) => set('dateTo', e.target.value)} />
-          </label>
-          <button onClick={() => void load(filters)}>{t.mailbox.apply}</button>
-          <button
-            onClick={() => {
-              setFilters({});
-              void load({});
-            }}
-          >
-            {t.mailbox.clear}
-          </button>
+      <div className="card">
+        <div className="card-body">
+          <div className="filter-bar">
+            <label className="field">
+              <span>{t.mailbox.chain}</span>
+              <input value={filters.chainId ?? ''} onChange={(e) => set('chainId', e.target.value)} />
+            </label>
+            <label className="field">
+              <span>{t.mailbox.pharmacy}</span>
+              <input value={filters.pharmacyCode ?? ''} onChange={(e) => set('pharmacyCode', e.target.value)} />
+            </label>
+            <label className="field">
+              <span>{t.mailbox.status}</span>
+              <select value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
+                <option value="">{t.mailbox.all}</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {t.status[s] ?? s}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>{t.mailbox.dateFrom}</span>
+              <input type="date" value={filters.dateFrom ?? ''} onChange={(e) => set('dateFrom', e.target.value)} />
+            </label>
+            <label className="field">
+              <span>{t.mailbox.dateTo}</span>
+              <input type="date" value={filters.dateTo ?? ''} onChange={(e) => set('dateTo', e.target.value)} />
+            </label>
+            <div className="filter-actions">
+              <button onClick={() => void load(filters)}>{t.mailbox.apply}</button>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setFilters({});
+                  void load({});
+                }}
+              >
+                {t.mailbox.clear}
+              </button>
+            </div>
+          </div>
         </div>
-      </fieldset>
+      </div>
 
       {loads === null ? (
-        <p>Cargando…</p>
+        <p className="muted">{t.common.loading}</p>
       ) : loads.length === 0 ? (
-        <p>{t.mailbox.empty}</p>
+        <div className="card"><div className="card-body muted">{t.mailbox.empty}</div></div>
       ) : (
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <Table>
           <thead>
             <tr>
-              <th style={cell}>{t.loads.id}</th>
-              <th style={cell}>{t.mailbox.origin}</th>
-              <th style={cell}>{t.mailbox.status}</th>
-              <th style={cell}>{t.loads.total}</th>
-              <th style={cell}>{t.loads.valid}</th>
-              <th style={cell}>{t.loads.rejected}</th>
-              <th style={cell}>{t.loads.date}</th>
-              <th style={cell}></th>
+              <th>{t.loads.id}</th>
+              <th>{t.mailbox.origin}</th>
+              <th>{t.mailbox.status}</th>
+              <th>{t.loads.total}</th>
+              <th>{t.loads.valid}</th>
+              <th>{t.loads.rejected}</th>
+              <th>{t.loads.date}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {loads.map((l) => (
               <tr key={l.loadId}>
-                <td style={cell}>{l.loadId.slice(0, 8)}</td>
-                <td style={cell}>{l.origin}</td>
-                <td style={cell}>{t.status[l.status] ?? l.status}</td>
-                <td style={cell}>{l.totalRows}</td>
-                <td style={cell}>{l.validRows}</td>
-                <td style={cell}>{l.rejectedRows}</td>
-                <td style={cell}>{new Date(l.createdAt).toLocaleString('es-MX')}</td>
-                <td style={cell}>
+                <td className="mono">{l.loadId.slice(0, 8)}</td>
+                <td>{l.origin}</td>
+                <td><StatusBadge status={l.status} /></td>
+                <td>{l.totalRows}</td>
+                <td>{l.validRows}</td>
+                <td>{l.rejectedRows}</td>
+                <td>{new Date(l.createdAt).toLocaleString('es-MX')}</td>
+                <td>
                   <Link to={`/carga/${l.loadId}`}>{t.mailbox.viewDetail}</Link>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       )}
     </section>
   );
 }
-
-const cell: CSSProperties = { border: '1px solid #ddd', padding: '0.4rem', textAlign: 'left' };

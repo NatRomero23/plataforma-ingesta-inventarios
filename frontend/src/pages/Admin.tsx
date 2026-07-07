@@ -1,6 +1,8 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { admin, type ApiKeyInfo, type Chain, type Pharmacy } from '../services/apiClient';
 import { t } from '../i18n/es-MX';
+import { Card } from '../components/Card';
+import { Table } from '../components/Table';
 
 export function Admin() {
   const [chains, setChains] = useState<Chain[]>([]);
@@ -20,24 +22,25 @@ export function Admin() {
   }, []);
 
   return (
-    <section>
+    <section className="stack" style={{ gap: '1rem' }}>
       <h2>{t.admin.title}</h2>
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+      {error && <p className="alert alert-error">{error}</p>}
 
       <ChainsSection chains={chains} onCreated={refreshChains} />
 
-      <hr />
-      <label>
-        {t.admin.selectChain}{' '}
-        <select value={selectedChain} onChange={(e) => setSelectedChain(e.target.value)}>
-          <option value="">—</option>
-          {chains.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Card title={t.admin.selectChain}>
+        <label className="field" style={{ maxWidth: 320 }}>
+          <span>{t.admin.selectChain}</span>
+          <select value={selectedChain} onChange={(e) => setSelectedChain(e.target.value)}>
+            <option value="">—</option>
+            {chains.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </Card>
 
       {selectedChain && (
         <>
@@ -46,7 +49,6 @@ export function Admin() {
         </>
       )}
 
-      <hr />
       <UsersSection chains={chains} />
     </section>
   );
@@ -56,30 +58,36 @@ function ChainsSection({ chains, onCreated }: { chains: Chain[]; onCreated: () =
   const [name, setName] = useState('');
   const [err, setErr] = useState<string | null>(null);
   return (
-    <div>
-      <h3>{t.admin.chains}</h3>
-      <ul>
-        {chains.map((c) => (
-          <li key={c.id}>{c.name}</li>
-        ))}
-      </ul>
-      <input placeholder={t.admin.chainName} value={name} onChange={(e) => setName(e.target.value)} />
-      <button
-        onClick={async () => {
-          setErr(null);
-          try {
-            await admin.createChain(name);
-            setName('');
-            onCreated();
-          } catch (e) {
-            setErr((e as Error).message);
-          }
-        }}
-      >
-        {t.admin.newChain}
-      </button>
-      {err && <span style={{ color: 'crimson' }}> {err}</span>}
-    </div>
+    <Card title={t.admin.chains}>
+      {chains.length > 0 && (
+        <div className="row" style={{ marginBottom: '0.75rem' }}>
+          {chains.map((c) => (
+            <span key={c.id} className="badge badge-neutral">{c.name}</span>
+          ))}
+        </div>
+      )}
+      <div className="row row-end">
+        <label className="field">
+          <span>{t.admin.chainName}</span>
+          <input placeholder={t.admin.chainName} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <button
+          onClick={async () => {
+            setErr(null);
+            try {
+              await admin.createChain(name);
+              setName('');
+              onCreated();
+            } catch (e) {
+              setErr((e as Error).message);
+            }
+          }}
+        >
+          {t.admin.newChain}
+        </button>
+      </div>
+      {err && <p className="alert alert-error">{err}</p>}
+    </Card>
   );
 }
 
@@ -96,30 +104,44 @@ function PharmaciesSection({ chainId }: { chainId: string }) {
   }, [chainId]);
 
   return (
-    <div>
-      <h3>{t.admin.pharmacies}</h3>
-      <table style={{ borderCollapse: 'collapse' }}>
+    <Card title={t.admin.pharmacies}>
+      <Table>
         <thead>
           <tr>
-            <th style={cell}>{t.admin.internalCode}</th>
-            <th style={cell}>{t.admin.redVidarCode}</th>
-            <th style={cell}>{t.admin.pharmacyName}</th>
+            <th>{t.admin.internalCode}</th>
+            <th>{t.admin.redVidarCode}</th>
+            <th>{t.admin.pharmacyName}</th>
           </tr>
         </thead>
         <tbody>
           {items.map((p) => (
             <tr key={p.id}>
-              <td style={cell}>{p.chainInternalCode}</td>
-              <td style={cell}>{p.redVidarPharmacyCode ?? '— (no mapeada)'}</td>
-              <td style={cell}>{p.name}</td>
+              <td className="mono">{p.chainInternalCode}</td>
+              <td>
+                {p.redVidarPharmacyCode ? (
+                  <span className="mono">{p.redVidarPharmacyCode}</span>
+                ) : (
+                  <span className="badge badge-warn">{t.activity.unmapped}</span>
+                )}
+              </td>
+              <td>{p.name}</td>
             </tr>
           ))}
         </tbody>
-      </table>
-      <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-        <input placeholder={t.admin.internalCode} value={form.chainInternalCode} onChange={(e) => setForm({ ...form, chainInternalCode: e.target.value })} />
-        <input placeholder={t.admin.redVidarCode} value={form.redVidarPharmacyCode} onChange={(e) => setForm({ ...form, redVidarPharmacyCode: e.target.value })} />
-        <input placeholder={t.admin.pharmacyName} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      </Table>
+      <div className="row row-end" style={{ marginTop: '0.75rem' }}>
+        <label className="field">
+          <span>{t.admin.internalCode}</span>
+          <input placeholder={t.admin.internalCode} value={form.chainInternalCode} onChange={(e) => setForm({ ...form, chainInternalCode: e.target.value })} />
+        </label>
+        <label className="field">
+          <span>{t.admin.redVidarCode}</span>
+          <input placeholder={t.admin.redVidarCode} value={form.redVidarPharmacyCode} onChange={(e) => setForm({ ...form, redVidarPharmacyCode: e.target.value })} />
+        </label>
+        <label className="field">
+          <span>{t.admin.pharmacyName}</span>
+          <input placeholder={t.admin.pharmacyName} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
         <button
           onClick={async () => {
             setErr(null);
@@ -139,8 +161,8 @@ function PharmaciesSection({ chainId }: { chainId: string }) {
           {t.admin.addPharmacy}
         </button>
       </div>
-      {err && <p style={{ color: 'crimson' }}>{err}</p>}
-    </div>
+      {err && <p className="alert alert-error">{err}</p>}
+    </Card>
   );
 }
 
@@ -156,41 +178,47 @@ function ApiKeysSection({ chainId }: { chainId: string }) {
   }, [chainId]);
 
   return (
-    <div>
-      <h3>{t.admin.apiKeys}</h3>
-      <p style={{ fontSize: '0.85rem', color: '#555' }}>{t.admin.autoRevokeNote}</p>
+    <Card
+      title={t.admin.apiKeys}
+      actions={
+        <button
+          onClick={async () => {
+            const res = await admin.generateApiKey(chainId);
+            setSecret(res.apiKey);
+            await refresh();
+          }}
+        >
+          {t.admin.generateKey}
+        </button>
+      }
+    >
+      <p className="muted text-sm" style={{ marginTop: 0 }}>{t.admin.autoRevokeNote}</p>
       {secret && (
-        <p style={{ background: '#fffae6', padding: '0.5rem' }}>
-          {t.admin.keyOnce} <code>{secret}</code>
+        <p className="alert alert-info">
+          {t.admin.keyOnce} <code className="mono">{secret}</code>
         </p>
       )}
-      <button
-        onClick={async () => {
-          const res = await admin.generateApiKey(chainId);
-          setSecret(res.apiKey);
-          await refresh();
-        }}
-      >
-        {t.admin.generateKey}
-      </button>
-      <table style={{ borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+      <Table>
         <thead>
           <tr>
-            <th style={cell}>Clave</th>
-            <th style={cell}>{t.admin.status}</th>
-            <th style={cell}>{t.admin.created}</th>
-            <th style={cell}></th>
+            <th>Clave</th>
+            <th>{t.admin.status}</th>
+            <th>{t.admin.created}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {keys.map((k) => (
             <tr key={k.id}>
-              <td style={cell}>****{k.last4}</td>
-              <td style={cell}>{k.status}</td>
-              <td style={cell}>{new Date(k.createdAt).toLocaleString('es-MX')}</td>
-              <td style={cell}>
+              <td className="mono">****{k.last4}</td>
+              <td>
+                <span className={`badge ${k.status === 'ACTIVE' ? 'badge-ok' : 'badge-neutral'}`}>{k.status}</span>
+              </td>
+              <td>{new Date(k.createdAt).toLocaleString('es-MX')}</td>
+              <td>
                 {k.status === 'ACTIVE' && (
                   <button
+                    className="btn-sm btn-danger"
                     onClick={async () => {
                       await admin.revokeApiKey(k.id);
                       await refresh();
@@ -203,8 +231,8 @@ function ApiKeysSection({ chainId }: { chainId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </Table>
+    </Card>
   );
 }
 
@@ -214,24 +242,35 @@ function UsersSection({ chains }: { chains: Chain[] }) {
   const [err, setErr] = useState<string | null>(null);
 
   return (
-    <div>
-      <h3>{t.admin.users}</h3>
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <input placeholder={t.admin.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input type="password" placeholder={t.admin.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-          <option value="ADMIN">ADMIN</option>
-          <option value="COORDINATOR">COORDINATOR</option>
-          <option value="PHARMACY_USER">PHARMACY_USER</option>
-        </select>
-        <select value={form.chainId} onChange={(e) => setForm({ ...form, chainId: e.target.value })}>
-          <option value="">{t.admin.assignedChain}</option>
-          {chains.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+    <Card title={t.admin.users}>
+      <div className="row row-end">
+        <label className="field">
+          <span>{t.admin.email}</span>
+          <input placeholder={t.admin.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </label>
+        <label className="field">
+          <span>{t.admin.password}</span>
+          <input type="password" placeholder={t.admin.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        </label>
+        <label className="field">
+          <span>{t.admin.role}</span>
+          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="ADMIN">ADMIN</option>
+            <option value="COORDINATOR">COORDINATOR</option>
+            <option value="PHARMACY_USER">PHARMACY_USER</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>{t.admin.assignedChain}</span>
+          <select value={form.chainId} onChange={(e) => setForm({ ...form, chainId: e.target.value })}>
+            <option value="">{t.admin.assignedChain}</option>
+            {chains.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           onClick={async () => {
             setErr(null);
@@ -253,10 +292,8 @@ function UsersSection({ chains }: { chains: Chain[] }) {
           {t.admin.createUser}
         </button>
       </div>
-      {msg && <p style={{ color: 'green' }}>{msg}</p>}
-      {err && <p style={{ color: 'crimson' }}>{err}</p>}
-    </div>
+      {msg && <p className="alert alert-success">{msg}</p>}
+      {err && <p className="alert alert-error">{err}</p>}
+    </Card>
   );
 }
-
-const cell: CSSProperties = { border: '1px solid #ddd', padding: '0.4rem', textAlign: 'left' };
