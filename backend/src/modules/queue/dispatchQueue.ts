@@ -15,10 +15,15 @@ export interface ClaimedJob {
 /** Reclama el siguiente job QUEUED cuyo availableAt ya pasó, marcándolo CLAIMED en la misma transacción. */
 export async function claimNextJob(): Promise<ClaimedJob | null> {
   return prisma.$transaction(async (tx) => {
+    // availableAt es `timestamp without time zone`: Prisma guarda el instante UTC como hora "desnuda".
+    // Comparar contra now() (timestamptz) haría que Postgres reinterprete availableAt en la zona de la
+    // sesión (p. ej. America/Mexico_City), corriéndolo al futuro y dejando la cola atascada cuando la
+    // sesión no es UTC. now() AT TIME ZONE 'UTC' devuelve la hora UTC desnuda, que sí coincide con lo
+    // almacenado, sin importar la zona de la sesión.
     const rows = await tx.$queryRaw<Array<{ id: string; loadId: string; attempts: number }>>`
       SELECT id, "loadId", attempts
       FROM "DispatchJob"
-      WHERE status = 'QUEUED' AND "availableAt" <= now()
+      WHERE status = 'QUEUED' AND "availableAt" <= (now() AT TIME ZONE 'UTC')
       ORDER BY "availableAt" ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1`;

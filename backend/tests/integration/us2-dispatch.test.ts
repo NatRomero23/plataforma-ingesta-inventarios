@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from
 import nock from 'nock';
 import { prisma } from '../../src/lib/prisma.js';
 import { processJob } from '../../src/modules/dispatch/dispatchService.js';
+import { claimNextJob } from '../../src/modules/queue/dispatchQueue.js';
 import { resetDb } from '../helpers/db.js';
 
 /**
@@ -128,5 +129,31 @@ d('US2 — despacho a Red Vidar', () => {
     expect(dj?.status).toBe('FAILED');
     const load = await prisma.load.findUnique({ where: { id: job.loadId } });
     expect(load?.status).toBe('FAILED');
+  });
+
+  // Regresión: la cola quedaba atascada cuando la zona de la sesión de Postgres NO era UTC.
+  // availableAt es `timestamp without time zone` (UTC "desnudo"); comparado contra now() (timestamptz),
+  // Postgres lo reinterpretaba en la zona de sesión y "availableAt <= now()" daba false para jobs ya vencidos,
+  // de modo que claimNextJob() nunca reclamaba nada y el worker quedaba en silencio con las cargas en QUEUED.
+  it('claimNextJob reclama un job vencido aunque la sesión NO sea UTC', async () => {
+    await prisma.$executeRawUnsafe("SET TIME ZONE 'America/Mexico_City'");
+    try {
+      const { job } = await createQueuedLoad(chainId);
+      // availableAt por defecto es now() al crear: ya está vencido. Debe reclamarse.
+      const claimed = await claimNextJob();
+      expect(claimed?.id).toBe(job.id);
+      const dj = await prisma.dispatchJob.findUnique({ where: { id: job.id } });
+      expect(dj?.status).toBe('CLAIMED');
+    } finally {
+      await prisma.$executeRawUnsafe('SET TIME ZONE DEFAULT');
+    }
+  });
+
+  it('claimNextJob NO reclama un job cuyo availableAt aún es futuro', async () => {
+    const { load } = await createQueuedLoad(chainId);
+    const future = new Date(Date.now() + 60_000);
+    await prisma.dispatchJob.update({ where: { loadId: load.id }, data: { availableAt: future } });
+    const claimed = await claimNextJob();
+    expect(claimed).toBeNull();
   });
 });

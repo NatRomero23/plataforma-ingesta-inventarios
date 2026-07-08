@@ -24,6 +24,10 @@ async function run(): Promise<void> {
   const clientDeps = { baseUrl: config.RED_VIDAR_BASE_URL, apiKey: config.RED_VIDAR_API_KEY };
   logger.info('Worker de despacho iniciado');
 
+  // Latido de inactividad: confirma que el loop sigue sondeando sin llenar el log en cada ciclo.
+  const HEARTBEAT_MS = 30_000;
+  let lastHeartbeat = 0;
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const wait = limiter.msUntilNextAllowed();
@@ -31,12 +35,20 @@ async function run(): Promise<void> {
 
     const job = await claimNextJob();
     if (!job) {
+      const t = Date.now();
+      if (t - lastHeartbeat >= HEARTBEAT_MS) {
+        logger.info('Sondeando la cola: sin jobs reclamables');
+        lastHeartbeat = t;
+      }
       await sleep(POLL_INTERVAL_MS);
       continue;
     }
+    lastHeartbeat = 0; // fuerza latido tras vaciar la cola
     limiter.recordRequest();
+    logger.info({ jobId: job.id, loadId: job.loadId, attempts: job.attempts }, 'Job reclamado; despachando');
     try {
       await processJob(job, { client: clientDeps });
+      logger.info({ jobId: job.id, loadId: job.loadId }, 'Job procesado');
     } catch (err) {
       logger.error({ err, jobId: job.id }, 'Error inesperado procesando job');
     }
