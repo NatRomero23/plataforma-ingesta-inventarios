@@ -30,27 +30,36 @@ async function run(): Promise<void> {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const wait = limiter.msUntilNextAllowed();
-    if (wait > 0) await sleep(wait);
-
-    const job = await claimNextJob();
-    if (!job) {
-      const t = Date.now();
-      if (t - lastHeartbeat >= HEARTBEAT_MS) {
-        logger.info('Sondeando la cola: sin jobs reclamables');
-        lastHeartbeat = t;
-      }
-      await sleep(POLL_INTERVAL_MS);
-      continue;
-    }
-    lastHeartbeat = 0; // fuerza latido tras vaciar la cola
-    limiter.recordRequest();
-    logger.info({ jobId: job.id, loadId: job.loadId, attempts: job.attempts }, 'Job reclamado; despachando');
     try {
-      await processJob(job, { client: clientDeps });
-      logger.info({ jobId: job.id, loadId: job.loadId }, 'Job procesado');
+      const wait = limiter.msUntilNextAllowed();
+      if (wait > 0) await sleep(wait);
+
+      const job = await claimNextJob();
+      if (!job) {
+        const t = Date.now();
+        if (t - lastHeartbeat >= HEARTBEAT_MS) {
+          logger.info('Sondeando la cola: sin jobs reclamables');
+          lastHeartbeat = t;
+        }
+        await sleep(POLL_INTERVAL_MS);
+        continue;
+      }
+      lastHeartbeat = 0; // fuerza latido tras vaciar la cola
+      limiter.recordRequest();
+      logger.info({ jobId: job.id, loadId: job.loadId, attempts: job.attempts }, 'Job reclamado; despachando');
+      try {
+        await processJob(job, { client: clientDeps });
+        logger.info({ jobId: job.id, loadId: job.loadId }, 'Job procesado');
+      } catch (err) {
+        logger.error({ err, jobId: job.id }, 'Error inesperado procesando job');
+      }
     } catch (err) {
-      logger.error({ err, jobId: job.id }, 'Error inesperado procesando job');
+      // Un error transitorio de infraestructura (p. ej. conexión de BD caída tras suspender el equipo,
+      // o una transacción interactiva expirada) NO debe tumbar el worker: se registra y se reintenta en
+      // el siguiente ciclo. Prisma reabre la conexión automáticamente. Se espera un poco para no entrar
+      // en un bucle de error apretado si la BD sigue no disponible.
+      logger.error({ err }, 'Error transitorio en el ciclo del worker; se reintenta en el siguiente ciclo');
+      await sleep(POLL_INTERVAL_MS);
     }
   }
 }
