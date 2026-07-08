@@ -19,6 +19,7 @@ d('US3 — buzón', () => {
   let coordToken = '';
   let pharmToken = '';
   let failedLoadA = '';
+  let apiLoadA = '';
 
   beforeAll(async () => {
     await resetDb();
@@ -65,6 +66,24 @@ d('US3 — buzón', () => {
     failedLoadA = failed.id;
     await mkLoad(chainA, 'CONFIRMED', pharmUser.id);
     await mkLoad(chainB, 'FAILED', null);
+
+    // Carga de origen API en la MISMA cadena del usuario-farmacia (sin uploaderUserId): el
+    // usuario-farmacia NO debe verla; solo admin/coordinador la ven en el Buzón.
+    const apiLoad = await prisma.load.create({
+      data: {
+        chainId: chainA,
+        origin: 'API',
+        status: 'CONFIRMED',
+        uploaderUserId: null,
+        originalBlob: Buffer.from('{"items":[]}'),
+        contentType: 'application/json',
+        byteSize: 12,
+        totalRows: 3,
+        validRows: 3,
+        rejectedRows: 0,
+      },
+    });
+    apiLoadA = apiLoad.id;
   });
 
   afterAll(async () => {
@@ -111,6 +130,25 @@ d('US3 — buzón', () => {
     const res = await request(app).get('/api/v1/loads').set('Authorization', `Bearer ${pharmToken}`);
     expect(res.status).toBe(200);
     expect(res.body.every((l: { chainId: string }) => l.chainId === chainA)).toBe(true);
+  });
+
+  it('T051c: usuario-farmacia solo ve SUS cargas del portal, NO las de origen API de su cadena', async () => {
+    const res = await request(app).get('/api/v1/loads').set('Authorization', `Bearer ${pharmToken}`);
+    expect(res.status).toBe(200);
+    // Solo sus dos cargas del portal; ninguna de origen API.
+    expect(res.body).toHaveLength(2);
+    expect(res.body.every((l: { origin: string }) => l.origin === 'PORTAL')).toBe(true);
+    // La carga API de su cadena existe pero no es visible para él.
+    expect(res.body.some((l: { loadId: string }) => l.loadId === apiLoadA)).toBe(false);
+  });
+
+  it('T051d: admin/coordinador SÍ ven las cargas de origen API en el Buzón', async () => {
+    const res = await request(app)
+      .get('/api/v1/loads')
+      .query({ chainId: chainA })
+      .set('Authorization', `Bearer ${coordToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.some((l: { loadId: string }) => l.loadId === apiLoadA)).toBe(true);
   });
 
   it('T051: usuario-farmacia no puede ver el detalle de otra cadena (403)', async () => {

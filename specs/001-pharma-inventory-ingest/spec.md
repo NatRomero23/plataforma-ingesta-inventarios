@@ -20,6 +20,10 @@
 - Q: ¿Cómo se representa el integrador-api en el modelo de datos? → A: El integrador NO es una persona usuaria (`User`) del portal; se representa únicamente por su `ApiKey` por cadena. `integrador-api` es un ámbito de autorización que otorga la clave de API, no un rol asignable en el alta de usuarios (que solo admite admin, coordinador y usuario-farmacia).
 - Q: Al generar una nueva clave de API para una cadena que ya tiene una activa, ¿qué ocurre? → A: Generar una clave nueva **revoca automáticamente** la clave `ACTIVE` previa de esa cadena (garantiza "una activa por cadena") y ambas acciones quedan registradas en `AuditLog`.
 
+### Session 2026-07-08
+
+- Q: En su vista "Mis cargas", ¿el usuario-farmacia ve todas las cargas de su cadena (incluidas las de origen API) o solo las que él mismo subió por el portal? → A: Solo las que él mismo subió por el portal (`uploaderUserId` = su usuario). Las cargas de origen API de la cadena NO aparecen en "Mis cargas"; siguen visibles solo para administración y coordinación en el Buzón. Motivo: las cargas API no las sube esa persona y mostrarlas confundía. Afecta FR-029 y el alcance por rol de `GET /loads`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Carga de inventario por portal con validación previa (Priority: P1)
@@ -321,8 +325,9 @@ farmacia la fecha de su última carga exitosa y permite identificar las que no r
   una clave `ACTIVE` por cadena**: generar una clave nueva **revoca automáticamente** la clave activa previa de esa
   cadena, y tanto la generación como la revocación automática quedan registradas de forma auditable.
 - **FR-029**: El sistema DEBE restringir el acceso por rol: administración ve y gestiona todo; coordinación monitorea
-  y consulta todas las cargas pero no gestiona usuarios; usuario-farmacia solo opera y ve las cargas de su propia
-  cadena; integrador-api solo usa la API para enviar y consultar cargas de su cadena.
+  y consulta todas las cargas pero no gestiona usuarios; usuario-farmacia solo opera y ve **las cargas que él mismo
+  subió por el portal** (no ve las cargas de origen API de su cadena, que solo ven administración y coordinación en
+  el Buzón — ver Clarifications 2026-07-08); integrador-api solo usa la API para enviar y consultar cargas de su cadena.
 - **FR-030**: El sistema NUNCA DEBE exponer la credencial de Red Vidar (prefijo `rv_pc_live_`) a integradores, al
   frontend, en logs ni en respuestas; los integradores usan exclusivamente su clave de API de la plataforma.
 

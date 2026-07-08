@@ -3,7 +3,10 @@ import { prisma } from '../../lib/prisma.js';
 
 /**
  * Buzón de cargas (US3, FR-023). Listado con filtros y paginación, con alcance por rol (FR-029):
- * admin/coordinador ven todas las cadenas; usuario-farmacia queda restringido a su propia cadena.
+ * admin/coordinador ven todas las cadenas; el usuario-farmacia SOLO ve las cargas que él mismo subió
+ * por el portal (uploaderUserId = su usuario). Las cargas de origen API no tienen uploaderUserId, así
+ * que quedan fuera de su vista "Mis cargas" y solo son visibles para admin/coordinador en el Buzón
+ * (decisión de alcance, ver spec.md FR-029 y Clarifications 2026-07-08).
  */
 
 export interface LoadFilters {
@@ -18,6 +21,8 @@ export interface LoadFilters {
 export interface AuthScope {
   privileged: boolean; // ADMIN o COORDINATOR
   chainId: string | null;
+  /** Id del usuario autenticado; acota el alcance del usuario-farmacia a sus propias cargas. */
+  userId?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -25,9 +30,10 @@ const PAGE_SIZE = 50;
 export function buildLoadWhere(filters: LoadFilters, scope: AuthScope): Prisma.LoadWhereInput {
   const where: Prisma.LoadWhereInput = {};
 
-  // Alcance por rol: no privilegiado => solo su cadena (FR-029).
+  // Alcance por rol (FR-029): el usuario-farmacia solo ve SUS cargas del portal (las que subió).
+  // Esto excluye las cargas de origen API de su cadena, que solo ven admin/coordinador en el Buzón.
   if (!scope.privileged) {
-    where.chainId = scope.chainId ?? '__none__';
+    where.uploaderUserId = scope.userId ?? '__none__';
   } else if (filters.chainId) {
     where.chainId = filters.chainId;
   }

@@ -39,7 +39,11 @@ loadsRouter.get('/loads/:loadId/original', authJwt, async (req, res) => {
 
 // GET /loads — buzón con filtros (FR-023). Usuario-farmacia: solo su cadena; admin/coordinador: todas.
 loadsRouter.get('/loads', authJwt, async (req, res) => {
-  const scope = { privileged: isPrivileged(req.auth?.role), chainId: req.auth?.chainId ?? null };
+  const scope = {
+    privileged: isPrivileged(req.auth?.role),
+    chainId: req.auth?.chainId ?? null,
+    userId: req.auth?.userId ?? null,
+  };
   const q = req.query;
   const loads = await listLoads(
     {
