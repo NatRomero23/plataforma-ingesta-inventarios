@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "worker": "tsx src/worker.ts",
     "stub:redvidar": "node ../tools/redvidar-stub.mjs",
+    "emulador": "node ../tools/emulador-cadena.mjs",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
