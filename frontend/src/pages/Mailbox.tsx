@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listLoads, type LoadFilters, type LoadSummary } from '../services/apiClient';
+import { listLoads, UnauthorizedError, type LoadFilters, type LoadSummary } from '../services/apiClient';
 import { t } from '../i18n/es-MX';
 import { Table } from '../components/Table';
 import { StatusBadge } from '../components/StatusBadge';
@@ -18,12 +18,18 @@ const STATUSES = [
 export function Mailbox() {
   const [filters, setFilters] = useState<LoadFilters>({});
   const [loads, setLoads] = useState<LoadSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function load(applied: LoadFilters) {
     setLoads(null);
+    setError(null);
     try {
       setLoads(await listLoads(applied));
-    } catch {
+    } catch (e) {
+      // El 401 (sesión expirada) ya dispara la redirección al login en el apiClient; no mostramos
+      // aquí un estado vacío engañoso. Cualquier otro error se comunica como error, no como "sin datos".
+      if (e instanceof UnauthorizedError) return;
+      setError('No se pudieron cargar las cargas. Intenta de nuevo.');
       setLoads([]);
     }
   }
@@ -86,9 +92,11 @@ export function Mailbox() {
         </div>
       </div>
 
+      {error && <p className="alert alert-error" role="alert">{error}</p>}
+
       {loads === null ? (
         <p className="muted">{t.common.loading}</p>
-      ) : loads.length === 0 ? (
+      ) : error ? null : loads.length === 0 ? (
         <div className="card"><div className="card-body muted">{t.mailbox.empty}</div></div>
       ) : (
         <Table>

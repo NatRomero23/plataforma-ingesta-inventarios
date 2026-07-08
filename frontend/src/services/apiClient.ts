@@ -34,6 +34,27 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** Error de sesión no autenticada/expirada (HTTP 401) en una llamada autenticada. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('unauthorized');
+    this.name = 'UnauthorizedError';
+  }
+}
+
+/**
+ * Ante un 401 en una llamada autenticada, la sesión (token) está ausente o expiró: se limpia y se
+ * envía al login, en vez de dejar que la pantalla muestre un estado vacío engañoso ("no hay cargas").
+ * Lanza UnauthorizedError para cortar el flujo del llamador. La redirección solo ocurre en el navegador.
+ */
+function assertAuthorized(res: Response): void {
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== 'undefined') window.location.assign('/login');
+    throw new UnauthorizedError();
+  }
+}
+
 export interface ValidationSummary {
   loadId: string;
   status: string;
@@ -66,6 +87,7 @@ export async function login(email: string, password: string): Promise<{ token: s
 
 export async function downloadTemplate(): Promise<void> {
   const res = await fetch('/api/v1/inventory/template', { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('template');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -84,6 +106,7 @@ export async function uploadInventory(file: File): Promise<ValidationSummary> {
     headers: authHeaders(),
     body: form,
   });
+  assertAuthorized(res);
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? 'upload');
   return body;
@@ -91,12 +114,14 @@ export async function uploadInventory(file: File): Promise<ValidationSummary> {
 
 export async function confirmLoad(loadId: string): Promise<void> {
   const res = await fetch(`/api/v1/loads/${loadId}/confirm`, { method: 'POST', headers: authHeaders() });
+  assertAuthorized(res);
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? 'confirm');
 }
 
 export async function listMyLoads(): Promise<LoadSummary[]> {
   const res = await fetch('/api/v1/loads', { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('loads');
   return res.json();
 }
@@ -146,18 +171,21 @@ export async function listLoads(filters: LoadFilters): Promise<LoadSummary[]> {
     if (v) params.set(k, v);
   });
   const res = await fetch(`/api/v1/loads?${params.toString()}`, { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('loads');
   return res.json();
 }
 
 export async function getLoadDetail(loadId: string): Promise<LoadDetail> {
   const res = await fetch(`/api/v1/loads/${loadId}`, { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('detail');
   return res.json();
 }
 
 export async function downloadOriginal(loadId: string, filename: string | null): Promise<void> {
   const res = await fetch(`/api/v1/loads/${loadId}/original`, { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('original');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -175,6 +203,7 @@ async function jsonRequest<T>(url: string, method: string, body?: unknown): Prom
     headers: { ...authHeaders(), ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
+  assertAuthorized(res);
   const data = res.status === 204 ? null : await res.json();
   if (!res.ok) throw new Error((data && data.message) || 'error');
   return data as T;
@@ -210,6 +239,7 @@ export interface PharmacyActivity {
 export async function listPharmacyActivity(chainId?: string): Promise<PharmacyActivity[]> {
   const qs = chainId ? `?chainId=${encodeURIComponent(chainId)}` : '';
   const res = await fetch(`/api/v1/pharmacies/activity${qs}`, { headers: authHeaders() });
+  assertAuthorized(res);
   if (!res.ok) throw new Error('activity');
   return res.json();
 }
