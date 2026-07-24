@@ -7,6 +7,8 @@ import { translatePharmacyCode, type PharmacyLookup } from '../translation/trans
  */
 
 export const EAN_MAX_LENGTH = 20;
+/** Máximo de una columna INTEGER de Postgres (INT4). Un stock por encima desbordaría la BD. */
+export const STOCK_MAX = 2_147_483_647;
 
 export interface RawRow {
   rowNumber: number;
@@ -67,6 +69,8 @@ function checkFieldRules(chainPharmacyCode: string, ean: string, productName: st
     const stockNum = Number(rawStock);
     if (!Number.isInteger(stockNum) || stockNum < 0) {
       reasons.push('el stock debe ser un entero mayor o igual a 0');
+    } else if (stockNum > STOCK_MAX) {
+      reasons.push(`el stock excede el máximo permitido (${STOCK_MAX})`);
     }
   }
 

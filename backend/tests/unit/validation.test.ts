@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateRows, type RawRow } from '../../src/modules/validation/validateRows.js';
+import { validateRows, STOCK_MAX, type RawRow } from '../../src/modules/validation/validateRows.js';
 import { buildPharmacyLookup } from '../../src/modules/translation/translatePharmacyCode.js';
 
 const lookup = buildPharmacyLookup([
@@ -37,6 +37,30 @@ describe('validateRows (T024, FR-004, Principio VIII)', () => {
     const r = validateRows([row({ rowNumber: 6, stock: 2.5 })], lookup);
     expect(r.rejectedRows).toBe(1);
     expect(r.rows[0].rejectionReason).toContain('entero');
+  });
+
+  it('acepta stock igual al máximo de INT4 (borde)', () => {
+    const r = validateRows([row({ rowNumber: 6, stock: STOCK_MAX })], lookup);
+    expect(r.validRows).toBe(1);
+    expect(r.rows[0].status).toBe('VALID');
+    expect(r.rows[0].stock).toBe(STOCK_MAX);
+  });
+
+  it('rechaza stock que desbordaría INT4 (auditoría #3)', () => {
+    const r = validateRows([row({ rowNumber: 6, stock: STOCK_MAX + 1 })], lookup);
+    expect(r.validRows).toBe(0);
+    expect(r.rejectedRows).toBe(1);
+    expect(r.rows[0].rejectionReason).toContain('máximo permitido');
+  });
+
+  it('un stock desbordado no tumba las demás filas del archivo', () => {
+    const r = validateRows(
+      [row({ rowNumber: 2 }), row({ rowNumber: 3, stock: 9_999_999_999 })],
+      lookup,
+    );
+    expect(r.validRows).toBe(1);
+    expect(r.rejectedRows).toBe(1);
+    expect(r.rows[0].status).toBe('VALID');
   });
 
   it('rechaza EAN de más de 20 caracteres', () => {

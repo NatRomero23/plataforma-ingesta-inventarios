@@ -4,6 +4,7 @@ import { authJwt, requireRole } from '../../middleware/auth.js';
 import { authUserOrApiKey } from '../../middleware/authApiKey.js';
 import { confirmLoad, getLoadSummary, getLoadOriginal } from './loadsService.js';
 import { toLoadDetail } from './loadPresenter.js';
+import { safeContentDispositionFilename } from './contentDisposition.js';
 import { listLoads } from '../mailbox/mailboxService.js';
 import { isPrivileged } from '../../lib/roles.js';
 
@@ -32,7 +33,7 @@ loadsRouter.get('/loads/:loadId/original', authJwt, async (req, res) => {
     throw new AppError(403, 'SIN_PERMISO', 'No tienes permiso sobre esta carga.');
   }
   res.setHeader('Content-Type', original.contentType);
-  const filename = original.originalFilename ?? `carga-${req.params.loadId}`;
+  const filename = safeContentDispositionFilename(original.originalFilename, `carga-${req.params.loadId}`);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(original.originalBlob);
 });
